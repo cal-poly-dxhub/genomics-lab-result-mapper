@@ -28,20 +28,8 @@ class GenomicsStack(Stack):
 
         
         # Restrict Lambda to access S3 buckets in the same account
-        lambda_s3_role.add_to_policy(
-            iam.PolicyStatement(
-                effect=iam.Effect.ALLOW,
-                actions=["s3:*"],  # Allow all S3 actions
-                resources=[
-                    f"arn:aws:s3:::*",
-                    f"arn:aws:s3:::*/*"
-                ],
-                conditions={
-                    "StringEquals": {
-                        "s3:ResourceAccount": cdk.Aws.ACCOUNT_ID  # Restrict to same account
-                    }
-                }
-            )
+        lambda_s3_role.add_managed_policy(
+            iam.ManagedPolicy.from_aws_managed_policy_name("AmazonS3FullAccess")
         )
 
 
@@ -49,6 +37,13 @@ class GenomicsStack(Stack):
         lambda_s3_role.add_managed_policy(
             iam.ManagedPolicy.from_aws_managed_policy_name("AmazonBedrockFullAccess")
         )
+
+        # cloudwatch logs
+        lambda_s3_role.add_managed_policy(
+            iam.ManagedPolicy.from_aws_managed_policy_name("CloudWatchLogsFullAccess")
+        )
+
+
 
         # -------------------- genomics-upload-download S3 Bucket --------------------
         primary_bucket = s3.Bucket(
@@ -66,7 +61,7 @@ class GenomicsStack(Stack):
                         s3.HttpMethods.DELETE,
                         s3.HttpMethods.HEAD
                     ],
-                    allowed_origins=["*"],
+                    allowed_origins=["*","http://localhost:5173/"],
                     exposed_headers=["ETag"],
                 )
             ]
@@ -105,7 +100,7 @@ class GenomicsStack(Stack):
                         s3.HttpMethods.DELETE,
                         s3.HttpMethods.HEAD
                     ],
-                    allowed_origins=["*"],
+                    allowed_origins=["*","http://localhost:5173/"],
                     exposed_headers=["ETag"],
                 )
             ]
@@ -124,7 +119,7 @@ class GenomicsStack(Stack):
         presignedUrlLambda = _lambda.Function(
             self, "GenomicsApiLambda",
             runtime=_lambda.Runtime.PYTHON_3_13,
-            handler="lambda_function.handler",
+            handler="lambda_function.lambda_handler",
             code=_lambda.Code.from_asset("presignedUrlLambda"),
             role=lambda_s3_role,
             timeout=Duration.seconds(10), 
@@ -144,7 +139,7 @@ class GenomicsStack(Stack):
                     apigateway.CorsHttpMethod.HEAD,
                     apigateway.CorsHttpMethod.OPTIONS
                 ],
-                allow_origins=["*"],
+                allow_origins=["*","http://localhost:5173/"],
                 expose_headers=["ETag"]
             )
         )
