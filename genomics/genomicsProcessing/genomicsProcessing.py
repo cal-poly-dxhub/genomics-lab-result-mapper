@@ -6,7 +6,7 @@ import io
 import re
 import os
 
-def lambda_handler(event, context):
+def handler(event, context):
     # CHANGE: Use the bucket name from the event and verify it contains "genomicsuploaddownload"
     record = event['Records'][0]
     bucket_name = record['s3']['bucket']['name']
