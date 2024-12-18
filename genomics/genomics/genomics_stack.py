@@ -44,7 +44,6 @@ class GenomicsStack(Stack):
         )
 
 
-
         # -------------------- genomics-upload-download S3 Bucket --------------------
         primary_bucket = s3.Bucket(
             self, "GenomicsUploadDownloadBucket",
@@ -61,7 +60,7 @@ class GenomicsStack(Stack):
                         s3.HttpMethods.DELETE,
                         s3.HttpMethods.HEAD
                     ],
-                    allowed_origins=["*","http://localhost:5173/"],
+                    allowed_origins=["*"],
                     exposed_headers=["ETag"],
                 )
             ]
@@ -100,7 +99,7 @@ class GenomicsStack(Stack):
                         s3.HttpMethods.DELETE,
                         s3.HttpMethods.HEAD
                     ],
-                    allowed_origins=["*","http://localhost:5173/"],
+                    allowed_origins=["*"],
                     exposed_headers=["ETag"],
                 )
             ]
@@ -139,7 +138,7 @@ class GenomicsStack(Stack):
                     apigateway.CorsHttpMethod.HEAD,
                     apigateway.CorsHttpMethod.OPTIONS
                 ],
-                allow_origins=["*","http://localhost:5173/"],
+                allow_origins=["*"],
                 expose_headers=["ETag"]
             )
         )
@@ -161,28 +160,30 @@ class GenomicsStack(Stack):
         lambda_layer = _lambda.LayerVersion(
             self, "GenomicsLambdaLayer",
             code=_lambda.Code.from_asset("lambda-layer"),  # Folder with layer contents
-            compatible_runtimes=[_lambda.Runtime.PYTHON_3_13],  # Ensure this runtime is supported
+            compatible_runtimes=[_lambda.Runtime.PYTHON_3_13],
             description="A layer for additional libraries or utilities"
         )
 
         # Lambda function triggered by S3 event
         genomicsProcessing = _lambda.Function(
             self, "GenomicsS3EventLambda",
-            runtime=_lambda.Runtime.PYTHON_3_13,  # Ensure this runtime is supported
+            runtime=_lambda.Runtime.PYTHON_3_13,
             handler="genomicsProcessing.handler",
-            code=_lambda.Code.from_asset("genomicsProcessing"),  # Folder for Lambda function
+            code=_lambda.Code.from_asset("genomicsProcessing"),
             layers=[lambda_layer],
             environment={
                 "BUCKET_NAME": primary_bucket.bucket_name
             },
             role=lambda_s3_role,
-            timeout=Duration.seconds(20),  # Set timeout to 20 seconds
+            timeout=Duration.seconds(20),
         )
 
         # Add S3 Event Notification for PUT Object
+        # CHANGED HERE: Added NotificationKeyFilter with prefix='upload/'
         primary_bucket.add_event_notification(
             s3.EventType.OBJECT_CREATED_PUT,
-            s3n.LambdaDestination(genomicsProcessing)
+            s3n.LambdaDestination(genomicsProcessing),
+            s3.NotificationKeyFilter(prefix="upload/")  # <-- Change made here
         )
 
         # -------------------- Outputs --------------------
