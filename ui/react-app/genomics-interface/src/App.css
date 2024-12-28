@@ -1,0 +1,307 @@
+/* src/App.css */
+
+/* Import Google Fonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&family=Roboto+Mono:wght@400;700&display=swap');
+
+:root {
+  /* Light Mode Colors */
+  --primary-gradient: linear-gradient(135deg, #6B73FF 0%, #000DFF 100%);
+  --secondary-gradient: linear-gradient(135deg, #FF758C 0%, #FF7EB3 100%);
+  --background-color: #f0f4f8;
+  --card-background: #ffffff;
+  --text-color: #333333;
+  --secondary-text: #555555;
+  --button-color: #6B73FF;
+  --button-hover-color: #000DFF;
+  --border-radius: 12px;
+  --transition-speed: 0.3s;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  font-family: 'Inter', sans-serif;
+  background: linear-gradient(0.33turn, #f6a192, #ffd9df, #f6c492, #f6a192);
+  background-size: 400% 400%;
+  animation: GradientBackground 12s ease infinite;
+  color: var(--text-color);
+  transition: background var(--transition-speed), color var(--transition-speed);
+  position: relative;
+  /* Removed overflow: hidden to allow scrolling */
+  /* overflow: hidden; */
+}
+
+@keyframes GradientBackground {
+  0%   { background-position: 0%   50%; }
+  50%  { background-position: 100% 50%; }
+  100% { background-position: 0%   50%; }
+}
+
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  padding-bottom: 100px; /* Ensure there's space for the footer */
+  text-align: center;
+  position: relative; /* Ensure it sits above the animated background */
+  z-index: 1; /* Higher z-index to appear above the background */
+}
+
+.header {
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: center; /* Center the header content */
+  align-items: center;
+}
+
+.header h1 {
+  /* Removed gradient effect */
+  /* background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent; */
+  
+  /* Set text color to white */
+  color: #ffffff;
+
+  /* Retain existing font properties */
+  font-family: 'Roboto Mono', monospace;
+  font-size: 2.5rem;
+}
+
+.theme-toggle-button {
+  /* Removed since dark mode is no longer supported */
+}
+
+.file-upload-section,
+.json-section,
+.download-section {
+  background: var(--card-background);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  border-radius: var(--border-radius);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+
+.file-upload-section:hover,
+.json-section:hover,
+.download-section:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2);
+}
+
+.file-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-color);
+}
+
+.file-input {
+  padding: 0.75rem;
+  border: 2px dashed #cccccc;
+  border-radius: var(--border-radius);
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  cursor: pointer;
+  transition: border-color var(--transition-speed);
+  background-color: transparent;
+  color: inherit;
+}
+
+.file-input:hover {
+  border-color: var(--primary-gradient);
+}
+
+.json-section h3 {
+  margin-bottom: 0.5rem;
+  color: var(--secondary-text);
+}
+
+.json-textarea {
+  width: 100%;
+  max-width: 600px;
+  padding: 1rem;
+  border: 1px solid #dddddd;
+  border-radius: var(--border-radius);
+  resize: vertical;
+  font-family: 'Roboto Mono', monospace;
+  font-size: 1rem;
+  transition: border-color var(--transition-speed);
+  background-color: transparent;
+  color: inherit;
+}
+
+.json-textarea:focus {
+  border-color: var(--primary-gradient);
+  outline: none;
+}
+
+.upload-button,
+.download-button {
+  background: var(--primary-gradient);
+  color: #ffffff;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  border-radius: var(--border-radius);
+  cursor: pointer;
+  transition: background var(--transition-speed), transform var(--transition-speed);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.upload-button:hover,
+.download-button:hover {
+  background: var(--button-hover-color);
+  transform: translateY(-2px);
+}
+
+.upload-button:disabled {
+  background: #cccccc;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.status-message {
+  margin-top: 1rem;
+  font-size: 1rem;
+  color: var(--secondary-text);
+}
+
+.download-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.download-button {
+  margin: 0.5rem 0;
+}
+
+@media (min-width: 768px) {
+  .download-section {
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .download-button {
+    margin: 0 0.5rem;
+  }
+}
+
+/* Spinner Styles */
+.spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-top: 4px solid #ffffff;
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  animation: spin 1s linear infinite;
+  display: inline-block;
+  margin-left: 0.5rem;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Responsive Typography */
+@media (max-width: 600px) {
+  .header h1 {
+    font-size: 2rem;
+  }
+
+  .upload-button,
+  .download-button {
+    width: 100%;
+    max-width: 300px;
+  }
+}
+
+/* Typewriter Cursor Styling */
+.typewriter-cursor {
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  background-color: white;
+  margin-left: 2px;
+  animation: blink 1s step-start infinite;
+  vertical-align: bottom;
+}
+
+@keyframes blink {
+  0%, 50% {
+    opacity: 1;
+  }
+  51%, 100% {
+    opacity: 0;
+  }
+}
+
+/* Subtle Text Shadow for Title */
+.title-shadow {
+  text-shadow:
+    1px 1px 2px rgba(0, 0, 0, 0.5),
+    2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Footer Styles */
+.footer {
+  position: fixed;
+  bottom: 20px; /* Adjust spacing from bottom */
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 1000; /* Ensure it's above other elements */
+}
+
+.footer-logo {
+  width: 300px; /* Increased size from 100px to 150px */
+  height: auto;
+  opacity: 0.6; /* Slight transparency */
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.footer-logo:hover {
+  opacity: 1;
+  transform: scale(1.05); /* Slight zoom on hover */
+}
+
+/* Responsive Logo Size */
+@media (max-width: 768px) {
+  .footer-logo {
+    width: 120px; /* Adjusted from 80px to 120px */
+  }
+}
+
+@media (max-width: 480px) {
+  .footer-logo {
+    width: 90px; /* Adjusted from 60px to 90px */
+  }
+}
+
+
+.json-output {
+  background-color: #f4f4f4;
+  border: 1px solid #ddd;
+  padding: 10px;
+  border-radius: 5px;
+  overflow-x: auto;
+  font-family: monospace;
+  font-size: 14px;
+  color: #333;
+}
+
+.json-display-section {
+  margin: 20px 0;
+}
