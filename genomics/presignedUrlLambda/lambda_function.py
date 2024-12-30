@@ -4,10 +4,14 @@ import uuid
 import os
 
 def lambda_handler(event, context):
-
+    # Add new parameters to existing parameter list
     file_name = event['queryStringParameters'].get('file_name')
     json_rules = event['queryStringParameters'].get('json_rules')  
     json_static_rules = event['queryStringParameters'].get('json_static_rules')
+    # BEGIN NEW PARAMETERS
+    column_definitions = event['queryStringParameters'].get('column_definitions')
+    static_rule_exclusions = event['queryStringParameters'].get('static_rule_exclusions')
+    # END NEW PARAMETERS
     upload_param = event['queryStringParameters'].get('upload')
     uploadTrue = upload_param and upload_param.lower() == 'true'
     unique_id = event['queryStringParameters'].get('uuid')
@@ -44,7 +48,6 @@ def lambda_handler(event, context):
         region_name='us-west-2',
     )
     
-    # CHANGE: Dynamically find bucket names containing "genomicsuploaddownload"
     try:
         response = s3_client.list_buckets()
         matching_buckets = [bucket['Name'] for bucket in response['Buckets'] if "genomicsuploaddownload" in bucket['Name']]
@@ -53,19 +56,18 @@ def lambda_handler(event, context):
                 "statusCode": 500,
                 "body": json.dumps({"error": "No bucket found containing 'genomicsuploaddownload' in the name."})
             }
-        bucket_name = matching_buckets[0]  # Use the first matching bucket
+        bucket_name = matching_buckets[0]
     except Exception as e:
         return {
             "statusCode": 500,
             "body": json.dumps({"error": f"Failed to list buckets: {str(e)}"})
         }
-    # END CHANGE
 
     if json_rules:
         try:
             json_rules_key = f"{unique_id}.json"
             s3_client.put_object(
-                Bucket=bucket_name,  # CHANGE: Use dynamic bucket name
+                Bucket=bucket_name,
                 Key=f"rules/{json_rules_key}",
                 Body=json_rules,
                 ContentType="application/json"
@@ -80,7 +82,7 @@ def lambda_handler(event, context):
         try:
             json_static_rules_key = f"static_{unique_id}.json"
             s3_client.put_object(
-                Bucket=bucket_name,  # CHANGE: Use dynamic bucket name
+                Bucket=bucket_name,
                 Key=f"rules/{json_static_rules_key}",
                 Body=json_static_rules,
                 ContentType="application/json"
@@ -91,11 +93,43 @@ def lambda_handler(event, context):
                 "body": json.dumps({"error": f"Failed to save json_static_rules: {str(e)}"})
             }
 
+    # BEGIN NEW S3 UPLOADS
+    if column_definitions:
+        try:
+            column_definitions_key = f"columndef_{unique_id}.json"
+            s3_client.put_object(
+                Bucket=bucket_name,
+                Key=f"rules/{column_definitions_key}",
+                Body=column_definitions,
+                ContentType="application/json"
+            )
+        except Exception as e:
+            return {
+                "statusCode": 500,
+                "body": json.dumps({"error": f"Failed to save column_definitions: {str(e)}"})
+            }
+
+    if static_rule_exclusions:
+        try:
+            static_rule_exclusions_key = f"exclusions_{unique_id}.json"
+            s3_client.put_object(
+                Bucket=bucket_name,
+                Key=f"rules/{static_rule_exclusions_key}",
+                Body=static_rule_exclusions,
+                ContentType="application/json"
+            )
+        except Exception as e:
+            return {
+                "statusCode": 500,
+                "body": json.dumps({"error": f"Failed to save static_rule_exclusions: {str(e)}"})
+            }
+    # END NEW S3 UPLOADS
+
     if uploadTrue:
         url = generate_presigned_url(
             s3_client,
             "put_object",
-            {"Bucket": bucket_name, "Key": f"upload/{fileName}", 'ContentType': 'text/csv'},  # CHANGE: Use dynamic bucket name
+            {"Bucket": bucket_name, "Key": f"upload/{fileName}", 'ContentType': 'text/csv'},
             900
         )
         print("Successful")
@@ -109,22 +143,20 @@ def lambda_handler(event, context):
         url = generate_presigned_url(
             s3_client,
             "get_object",
-            {"Bucket": bucket_name, "Key": f"download/{fileName}"},  # CHANGE: Use dynamic bucket name
+            {"Bucket": bucket_name, "Key": f"download/{fileName}"},
             900
         )
         print("Successful")
 
-        # BEGIN CHANGE: Retrieve the mappings file if it exists -------------------
         mapping_data = {}
         try:
             response = s3_client.get_object(
-                Bucket=bucket_name, Key=mapping_key  # CHANGE: Use dynamic bucket name
+                Bucket=bucket_name, Key=mapping_key
             )
             mapping_content = response['Body'].read().decode('utf-8')
             mapping_data = json.loads(mapping_content)
         except Exception as e:
-            print(f"Mapping file not found: {str(e)}")  # Safe fallback
-        # END CHANGE
+            print(f"Mapping file not found: {str(e)}")
 
         retObj = {
             'url': url,

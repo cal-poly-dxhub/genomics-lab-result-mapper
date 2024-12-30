@@ -73,6 +73,32 @@ def processDF(df, bucket_name, file_name_without_extension, file_uuid, s3Client)
     column_data = {col: df[col].iloc[0] if not df[col].isnull().all() else "" for col in df.columns}
     sraDf = pd.DataFrame()
     biosampleDf = pd.DataFrame()
+
+    # Load column definitions from S3
+    column_definitions = None
+    column_definitions_key = f"rules/columndef_{file_uuid}.json"
+    try:
+        s3Client.head_object(Bucket=bucket_name, Key=column_definitions_key)
+        column_def_obj = s3Client.get_object(Bucket=bucket_name, Key=column_definitions_key)
+        column_def_content = column_def_obj['Body'].read().decode('utf-8')
+        column_definitions = json.loads(column_def_content)
+    except Exception as e:
+        print(f"Column definitions file not found or invalid: {e}")
+        # Proceed without column definitions
+
+    # Load static rule exclusions from S3
+    static_exclusions = None
+    static_exclusions_key = f"rules/exclusions_{file_uuid}.json"
+    try:
+        s3Client.head_object(Bucket=bucket_name, Key=static_exclusions_key)
+        exclusions_obj = s3Client.get_object(Bucket=bucket_name, Key=static_exclusions_key)
+        exclusions_content = exclusions_obj['Body'].read().decode('utf-8')
+        static_exclusions = json.loads(exclusions_content)
+    except Exception as e:
+        print(f"Static exclusions file not found or invalid: {e}")
+        # Proceed without static exclusions
+
+        
     
     # Define mandatory and optional columns (these variables are currently unused but can be utilized for further validations)
     mandatorySRA = ['sample_name','organism','collected_by','collection_date','geo_loc_name','host','host_disease','isolation_source','lat_lon']
@@ -131,7 +157,9 @@ def processDF(df, bucket_name, file_name_without_extension, file_uuid, s3Client)
     filtered_biosample_column_data = {col: val for col, val in column_data.items() if col not in already_mapped_columns_biosample}
 
     # Generate prompts using filtered column data
-    sra_prompt = generate_prompt(filtered_sra_column_data, required_sra_columns, "SRA")
+    sra_prompt = generate_prompt(filtered_sra_column_data, required_sra_columns, "SRA", 
+                               column_definitions=column_definitions, 
+                               static_exclusions=static_exclusions)
     sra_json_text = invokeModel(sra_prompt)
     sra_json_obj = parse_json_response(sra_json_text)
     sraDf = map_columns(df, sra_json_obj)
@@ -141,7 +169,9 @@ def processDF(df, bucket_name, file_name_without_extension, file_uuid, s3Client)
         if col not in sraDf.columns:
             sraDf[col] = ""
 
-    biosample_prompt = generate_prompt(filtered_biosample_column_data, required_biosample_columns, "Biosample")
+    biosample_prompt = generate_prompt(filtered_biosample_column_data, required_biosample_columns, "Biosample",
+                                     column_definitions=column_definitions,
+                                     static_exclusions=static_exclusions)
     biosample_json_text = invokeModel(biosample_prompt)
     biosample_json_obj = parse_json_response(biosample_json_text)
     biosampleDf = map_columns(df, biosample_json_obj)
@@ -222,43 +252,96 @@ def processDF(df, bucket_name, file_name_without_extension, file_uuid, s3Client)
     except Exception as e:
         print(f"Failed to upload Biosample CSV: {str(e)}")
 
-def generate_prompt(column_data, required_columns, file_type):
-    formatted_columns = "\n".join([f"{col}: {value}" for col, value in column_data.items()])
-    prompt = f"""
-    You are a medical expert who is skilled at converting proprietary
-    lab data to the NCBI {file_type} format. A crucial step in this process is
-    mapping the columns of the lab's data to the columns of the NCBI {file_type}
-    format. Here are the lab's data columns and their first values:
-    {formatted_columns}
 
-    Map each of these columns to the NCBI {file_type} columns based on
-    your inference of what columns best match to each other:
+def generate_prompt(
+    column_data: dict,
+    required_columns: list,
+    file_type: str,
+    column_definitions: dict = None,
+    static_exclusions: dict = None
+) -> str:
+
+    # Format column data with improved readability
+    formatted_columns = "\n".join(
+        f"• {col}: {value!r}" for col, value in column_data.items()
+    )
+    
+    # Build column definitions section
+    column_definitions_text = ""
+    if column_definitions and 'column_definitions' in column_definitions:
+        definitions = column_definitions['column_definitions']
+        column_definitions_text = "\n\nColumn Definitions:"
+        column_definitions_text += "\n" + "\n".join(
+            f"• {col}: {definition}" 
+            for col, definition in definitions.items()
+        )
+
+    # Build exclusions section
+    exclusions_text = ""
+    if static_exclusions:
+        exclusion_key = f"{file_type.lower()}_exclusions"
+        if exclusion_key in static_exclusions:
+            exclusions = static_exclusions[exclusion_key]
+            exclusions_text = "\n\nForbidden Mappings:"
+            exclusions_text += "\n" + "\n".join(
+                f"• {src!r} must not be mapped to {target!r}"
+                for src, target in exclusions.items()
+            )
+
+    # Define example values based on file type
+    example_values = {
+        "SRA": {
+            "sample_name": "2024GN-00001",
+            "library_ID": "2024GN-00001",
+            "title": "WGS of 2024GN-00001",
+            "library_strategy": "WGS",
+            "library_source": "GENOMIC",
+            "library_selection": "RANDOM",
+            "library_layout": "paired",
+            "platform": "ILLUMINA",
+            "instrument_model": "Illumina MiSeq",
+            "design_description": "Shotgun Library",
+            "filetype": "fastq",
+            "filename": "2024GN-00001_R1.fastq.gz",
+            "filename2": "2024GN-00001_R2.fastq.gz"
+        },
+        "Biosample": {
+            "sample_name": "2024GN-00001",
+            "bioproject_accession": "PRJNA288601",
+            "organism": "Acinetobacter baumannii",
+            "strain": "2024GN-00001",
+            "host": "Homo sapiens",
+            "isolation_source": "Isolate, Urine",
+            "collection_date": "2024",
+            "geo_loc_name": "USA",
+            "sample_type": "Whole Organism",
+            "MLST#": "Pasteur ST2"
+        }
+    }
+
+    # Build the core prompt
+    prompt = f"""You are a medical laboratory expert specializing in converting proprietary lab data to NCBI {file_type} format. 
+    Your task is to map laboratory data columns to their corresponding NCBI {file_type} columns.
+
+    Input Laboratory Columns and Sample Values:
+    {formatted_columns}{column_definitions_text}{exclusions_text}
+
+    Required NCBI {file_type} Columns:
     {', '.join(required_columns)}
-    Return a JSON string object with the format of:
+
+    Example {file_type} Values:
+    {json.dumps(example_values[file_type], indent=2)}
+
+    Instructions:
+    1. Map each laboratory column to the most appropriate NCBI column
+    2. Use empty string "" for columns without a suitable match
+    3. Return ONLY a JSON object in this format:
     {{
-        "lab column1":"ncbi column1",
-        "lab column2":"ncbi column2"
-    }}
-    For any column that doesn't have a good match or is missing, leave it as an empty string "".
-    It is absolutely crucial that you return NOTHING but the JSON.
-    """
+        "lab_column1": "ncbi_column1",
+        "lab_column2": "ncbi_column2"
+    }}"""
 
-    if file_type == "SRA":
-        prompt += """Here are some sample definitions of the column headers: 
-        Header: *sample_name, Comment: Sample Name is a name that you choose for the sample. It can have any format, but we suggest that you make it concise, unique and consistent within your lab, and as informative as possible. Every Sample Name from a single Submitter must be unique.
-        Header: sample_title, Comment: Title of the sample.
-        Header: bioproject_accession, Comment: The accession number of the BioProject(s) to which the BioSample belongs. If the BioSample belongs to more than one BioProject, enter multiple bioproject_accession columns. A valid BioProject accession has prefix PRJN, PRJE or PRJD, e.g., PRJNA12345.
-        Header: *organism, Comment: The most descriptive organism name for this sample (to the species, if possible). It is OK to submit an organism name that is not in our database. In the case of a new species, provide the desired organism name, and our taxonomists may assign a provisional taxID. In the case of unidentified species, choose the appropriate Genus and include 'sp.', e.g., "Escherichia sp.". When sequencing a genome from a non-metagenomic source, include a strain or isolate name too, e.g., "Pseudomonas sp. UK4".
-        Header: strain, Comment: Organism group microbial or eukaryotic strain name 
-        Header: isolate, Comment: Organism group identification or description of the specific individual from which this sample was obtained
-        Header: *collected_by, Comment: Name of persons or institute who collected the sample
-        Header: *collection_date, Comment: the date on which the sample was collected; date/time ranges are supported by providing two dates from among the supported value formats, delimited by a forward-slash character; collection times are supported by adding "T", then the hour and minute after the date, and must be in Coordinated Universal Time (UTC), otherwise known as "Zulu Time" (Z); supported formats include "DD-Mmm-YYYY", "Mmm-YYYY", "YYYY" or ISO 8601 standard "YYYY-mm-dd", "YYYY-mm", "YYYY-mm-ddThh:mm:ss"; e.g., 30-Oct-1990, Oct-1990, 1990, 1990-10-30, 2015-10-11T17:53:03Z
-        Header: *geo_loc_name, Comment: Geographical origin of the sample; use the appropriate name from this list http://wria, fungi or virus) usually based on its antigenic properties. Same as serovar and serotype. Sometimes used as species identifier in bacteria with shaky taxonomy, e.g. Leptospira, serovar saopaolo S76607 (65357 in Entrez).       
-        Header: specimen_voucher, Comment: Identifier for the physical specimen. Use format: "[<institution-code>:[<collection-code>:]]<specimen_id>", eg, "UAM:Mamm:52179". Intended as a reference to the physical specimen that remains after it was analyzed. If the specimen was destroyed in the process of analysis, electronic images (e-vouchers) are an adequate substitute for a physical voucher specimen. Ideally the specimens will be deposited in a curated museum, herbarium, or frozen tissue collection, but often they will remain in a personal or laboratory collection for some time before they are deposited in a curated collection. There are three forms of specimen_voucher qualifiers. If the text of the qualifier includes one or more colons it is a 'structured voucher'. Structured vouchers include institution-codes (and optional collection-codes) taken from a controlled vocabulary maintained by the INSDC that denotes the museum or herbarium collection where the specimen resides, please visit: http://www.insdc.org/controlled-vocabulary-specimenvoucher-qualifier.
-        Header: subgroup, Comment: Taxonomy below subspecies; sometimes used in viruses to denote subgroups taken from a single isolate.
-        Header: subtype, Comment: Used as classifier in viruses (e.g. HIV type 1, Group M, Subtype A)."""
-
-    return prompt
+    return prompt.strip()
 
 def parse_json_response(json_text):
     # Extract JSON object from the response text

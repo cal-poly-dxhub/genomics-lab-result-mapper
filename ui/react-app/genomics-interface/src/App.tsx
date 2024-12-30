@@ -1,23 +1,20 @@
-// src/App.tsx 
 import React, { useState } from "react";
 import axios from "axios";
 import "./App.css";
 import Typewriter from "./Typewriter";
 import logo from "./assets/logo.png";
 
-const BASE_URL = "https://r9yk6nnowk.execute-api.us-west-2.amazonaws.com/";
+const BASE_URL = "https://o3w6gid9yi.execute-api.us-west-2.amazonaws.com";
 
 const App: React.FC = () => {
   const [uploadGood, setUploadGood] = useState<boolean>(false);
   const [sraDownloadUrl, setSraDownloadUrl] = useState<string | null>(null);
   const [biosampleDownloadUrl, setBiosampleDownloadUrl] = useState<string | null>(null);
-  
-  // **Change 1:** Add separate state for SRA and Biosample mappings
-  const [sraMappingsJson, setSraMappingsJson] = useState<any>(null); // New state for SRA mappings JSON
-  const [biosampleMappingsJson, setBiosampleMappingsJson] = useState<any>(null); // New state for Biosample mappings JSON
-
+  const [sraMappingsJson, setSraMappingsJson] = useState<any>(null);
+  const [biosampleMappingsJson, setBiosampleMappingsJson] = useState<any>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
+  // Existing JSON input states
   const [jsonRulesInput, setJsonRulesInput] = useState<string>(
     JSON.stringify(
       {
@@ -34,6 +31,28 @@ const App: React.FC = () => {
       {
         sra_static: { filename4: "asd.txt" },
         biosample_static: { bioproject_accession: "PRJNA288601" },
+      },
+      null,
+      4
+    )
+  );
+
+  // New JSON input states
+  const [columnDefinitionsInput, setColumnDefinitionsInput] = useState<string>(
+    JSON.stringify(
+      {
+        column_definitions: {"WSLH Specimen Number": "The ID used to track a specimen through the laboratory. Typically used internally."},
+      },
+      null,
+      4
+    )
+  );
+
+  const [staticRuleExclusionsInput, setStaticRuleExclusionsInput] = useState<string>(
+    JSON.stringify(
+      {
+        sra_exclusions: {"Submitting State":"sample_name", "Genus":"library_ID"},
+        biosample_exclusions: {"Date Collected":"sample_title", "Isolate Source":"bioproject_accession"},
       },
       null,
       4
@@ -58,21 +77,24 @@ const App: React.FC = () => {
     }
 
     let rulesDict: any;
+    let staticRulesDict: any;
+    let columnDefinitionsDict: any;
+    let staticRuleExclusionsDict: any;
+
     try {
       rulesDict = JSON.parse(jsonRulesInput);
-    } catch (err) {
-      setStatusMessage("Invalid JSON provided in the rules text area.");
-      return;
-    }
-
-    let staticRulesDict: any;
-    if (jsonStaticRulesInput.trim()) {
-      try {
+      if (jsonStaticRulesInput.trim()) {
         staticRulesDict = JSON.parse(jsonStaticRulesInput);
-      } catch (err) {
-        setStatusMessage("Invalid JSON provided in the static rules text area.");
-        return;
       }
+      if (columnDefinitionsInput.trim()) {
+        columnDefinitionsDict = JSON.parse(columnDefinitionsInput);
+      }
+      if (staticRuleExclusionsInput.trim()) {
+        staticRuleExclusionsDict = JSON.parse(staticRuleExclusionsInput);
+      }
+    } catch (err) {
+      setStatusMessage("Invalid JSON provided in one of the input fields.");
+      return;
     }
 
     setIsLoading(true);
@@ -85,6 +107,12 @@ const App: React.FC = () => {
 
     if (staticRulesDict) {
       params.append("json_static_rules", JSON.stringify(staticRulesDict));
+    }
+    if (columnDefinitionsDict) {
+      params.append("column_definitions", JSON.stringify(columnDefinitionsDict));
+    }
+    if (staticRuleExclusionsDict) {
+      params.append("static_rule_exclusions", JSON.stringify(staticRuleExclusionsDict));
     }
 
     const requestUrl = `${BASE_URL}?${params.toString()}`;
@@ -116,8 +144,7 @@ const App: React.FC = () => {
       if (sraResponse.status === 200) {
         setSraDownloadUrl(sraResponse.data.url);
         if (sraResponse.data.mappings) {
-          // **Change 2:** Set SRA mappings separately
-          setSraMappingsJson(sraResponse.data.mappings); // Save SRA mappings
+          setSraMappingsJson(sraResponse.data.mappings);
         }
       } else {
         setStatusMessage("Failed to fetch SRA download URL.");
@@ -134,8 +161,7 @@ const App: React.FC = () => {
       if (biosampleResponse.status === 200) {
         setBiosampleDownloadUrl(biosampleResponse.data.url);
         if (biosampleResponse.data.mappings) {
-          // **Change 3:** Set Biosample mappings separately
-          setBiosampleMappingsJson(biosampleResponse.data.mappings); // Save Biosample mappings
+          setBiosampleMappingsJson(biosampleResponse.data.mappings);
         }
       } else {
         setStatusMessage("Failed to fetch Biosample download URL.");
@@ -222,6 +248,30 @@ const App: React.FC = () => {
           />
         </section>
 
+        <section className="json-section">
+          <h3>Column Definitions</h3>
+          <textarea
+            value={columnDefinitionsInput}
+            onChange={(e) => setColumnDefinitionsInput(e.target.value)}
+            className="json-textarea"
+            rows={15}
+            cols={60}
+            aria-label="Column Definitions Input"
+          />
+        </section>
+
+        <section className="json-section">
+          <h3>Static Anti-Rules</h3>
+          <textarea
+            value={staticRuleExclusionsInput}
+            onChange={(e) => setStaticRuleExclusionsInput(e.target.value)}
+            className="json-textarea"
+            rows={15}
+            cols={60}
+            aria-label="Static Anti-Rules Input"
+          />
+        </section>
+
         <button
           onClick={handleUploadAndProcess}
           disabled={isLoading}
@@ -248,7 +298,6 @@ const App: React.FC = () => {
           </>
         )}
 
-        {/* **Change 4:** Display separate SRA mappings */}
         {sraMappingsJson && (
           <section className="json-display-section">
             <h3>SRA Mappings JSON</h3>
@@ -256,7 +305,6 @@ const App: React.FC = () => {
           </section>
         )}
 
-        {/* **Change 5:** Display separate Biosample mappings */}
         {biosampleMappingsJson && (
           <section className="json-display-section">
             <h3>Biosample Mappings JSON</h3>
