@@ -69,7 +69,7 @@ anthropic.claude-3-sonnet-20240229-v1:0
 
 - Clone the necessary repository to the EC2 instance:
     ```bash
-    git clone https://github.com/cal-poly-dxhub/helpdesk-chatbot.git
+    git clone https://github.com/cal-poly-dxhub/genomics-lab-result-mapper.git
     ```
 
 ### 3. Run OpenSearch CDK
