@@ -1,9 +1,5 @@
 # genomics-lab-result-mapper
 
-Front end Web Site: https://genomics-dev.calpoly.io/
-API Endpoint : https://genomics-api-dev.calpoly.io/
-
-
 # Collaboration
 Thanks for your interest in our solution.  Having specific examples of replication and cloning allows us to continue to grow and scale our work. If you clone or download this repository, kindly shoot us a quick email to let us know you are interested in this work!
 
