@@ -3,83 +3,139 @@
 Front end Web Site: https://genomics-dev.calpoly.io/
 API Endpoint : https://genomics-api-dev.calpoly.io/
 
-Collaboration
-Thanks for your interest in our solution. Having specific examples of replication and cloning allows us to continue to grow and scale our work. If you clone or download this repository, kindly shoot us a quick email to let us know you are interested in this work!
-[wwps-cic@amazon.com]
-Disclaimers
-Customers are responsible for making their own independent assessment of the information in this document.
-This document:
-(a) is for informational purposes only,
-(b) represents current AWS product offerings and practices, which are subject to change without notice, and
-(c) does not create any commitments or assurances from AWS and its affiliates, suppliers or licensors. AWS products or services are provided “as is” without warranties, representations, or conditions of any kind, whether express or implied. The responsibilities and liabilities of AWS to its customers are controlled by AWS agreements, and this document is not part of, nor does it modify, any agreement between AWS and its customers.
+
+# Helpdesk Chatbot Solution
+
+# Collaboration
+Thanks for your interest in our solution.  Having specific examples of replication and cloning allows us to continue to grow and scale our work. If you clone or download this repository, kindly shoot us a quick email to let us know you are interested in this work!
+
+[wwps-cic@amazon.com] 
+
+# Disclaimers
+
+**Customers are responsible for making their own independent assessment of the information in this document.**
+
+**This document:**
+
+(a) is for informational purposes only, 
+
+(b) represents current AWS product offerings and practices, which are subject to change without notice, and 
+
+(c) does not create any commitments or assurances from AWS and its affiliates, suppliers or licensors. AWS products or services are provided “as is” without warranties, representations, or conditions of any kind, whether express or implied. The responsibilities and liabilities of AWS to its customers are controlled by AWS agreements, and this document is not part of, nor does it modify, any agreement between AWS and its customers. 
+
 (d) is not to be considered a recommendation or viewpoint of AWS
-Additionally, all prototype code and associated assets should be considered:
+
+**Additionally, all prototype code and associated assets should be considered:**
+
 (a) as-is and without warranties
+
 (b) not suitable for production environments
-(d) to include shortcuts in order to support rapid prototyping such as, but not limitted to, relaxed authentication and authorization and a lack of strict adherence to security best practices
-All work produced is open source. More information can be found in the GitHub repo.
-Authors
-• Noor Dhaliwal - rdhali07@calpoly.edu
-Table of Contents
-• Overview
-• Backend Services
-• Additional Resource Links
-Genomics Mapper Overview
-• The DxHub developed a mapping solution to take proprietary lab masterdata .csv or .xlsx files and map the data to SRA and Biosample files.
-Steps to Deploy and Configure the System
-Before We Get Started
-• Request and ensure model access within AWS Bedrock, specifically:  
-  • Claude 3  
+
+(d) to include shortcuts in order to support rapid prototyping such as, but not limited to, relaxed authentication and authorization and a lack of strict adherence to security best practices
+
+**All work produced is open source. More information can be found in the GitHub repo.**
+
+## Authors
+- Noor Dhaliwal - rdhali07@calpoly.edu
+
+## Table of Contents
+- [Overview](#genomics-overview)
+- [Backend Services](#backend-services)
+- [Additional Resource Links](#additional-resource-links)
+
+## Genomics Mapper Overview
+- The [DxHub](https://dxhub.calpoly.edu/challenges/) developed a data mapping solution that takes an input .csv or .xlsx file containing the masterdata for a lab's genomics data and maps it to the SRA and Biosample formats for NCBI submission.
+
+## Steps to Deploy and Configure the System
+
+### Before We Get Started
+
+- Request and ensure model access within AWS Bedrock, specifically:
+    - Claude 3
+
 The corresponding model ID is:
+```
 anthropic.claude-3-sonnet-20240229-v1:0
+```
 
-1. Deploy an EC2 Instance
-• Deploy an EC2 instance in your desired region and configure it as required (i.e grant a role with required managed polices).
-• CDK will require Administrator Permissions
-2. Pull the Git Repository
-• Install git using this command  
-  
-sudo yum install git  
-• Clone the necessary repository to the EC2 instance:  
-git clone https://github.com/cal-poly-dxhub/helpdesk-chatbot.git
-3. Run OpenSearch CDK
-• Install Node.js for cdk  
-  
-sudo yum install -y nodejs  
-• Install cdk  
-  
-sudo npm install -g aws-cdk  
-• Install python 3.11  
-  
-sudo yum install python3.11  
-• Install pip3.11  
-  
-curl -O https://bootstrap.pypa.io/get-pip.py  
-python3.11 get-pip.py --user  
-• Create and activate venv and install requirements  
-  
-python3.11 -m venv env  
-source env/bin/activate  
-cd genomics-lab-result-mapper
-pip3.11 install -r requirements.txt  
-• CDK deploy  
-  
-cd cdk  
-cdk synth  
-cdk bootstrap  
-cdk deploy --all  
+### 1. Deploy an EC2 Instance
+- Deploy an EC2 instance in your desired region and configure it as required (i.e grant a role with required managed polices).
 
-The URL to the API endpoint will be available in API Gateway.
-The URL to the frontend interface will be available in the S3 Bucket containing the static website contents.
-Both will initially be randomly generated URLs and will not have HTTPS, that must be configured as needed.
+- CDK will require Administrator Permissions 
 
+### 2. Pull the Git Repository
+- Install git using this command 
+    ```
+    sudo yum install git
+    ```
+
+- Clone the necessary repository to the EC2 instance:
+    ```bash
+    git clone https://github.com/cal-poly-dxhub/helpdesk-chatbot.git
+    ```
+
+### 3. Run OpenSearch CDK
+
+- Install Node.js for cdk
+    ```
+    sudo yum install -y nodejs
+    ```
+
+- Install cdk
+    ```
+    sudo npm install -g aws-cdk
+    ```
+
+- Install python 3.11
+    ```
+    sudo yum install python3.11
+    ```
+    
+- Install pip3.11
+    ```
+    curl -O https://bootstrap.pypa.io/get-pip.py
+
+    python3.11 get-pip.py --user
+    ```
+
+- Create and activate venv and install requirements
+    ```
+    python3.11 -m venv env
+
+    source env/bin/activate
+
+    cd genomics-lab-result-mapper
+
+    pip3.11 install -r requirements.txt
+    ```
+
+- CDK deploy 
+    ```
+    cd cdk
+
+    cdk synth
+
+    cdk bootstrap
+
+    cdk deploy --all
+
+    ```
+
+### 4. URLs
+- Locate the API URL in API Gateway.
+- Locate the frontend interface URL in the S3 Bucket containing the static website contents.
+- HTTPS and domain configuration will need to be done as needed.
+  
 By following these steps, you will have a properly deployed and configured system with the desired settings.
-Known Bugs/Concerns
-• Quick PoC with no intent verification or error checking
-Support
+
+
+## Known Bugs/Concerns
+- Quick PoC with no intent verification or error checking
+
+## Support
 For any queries or issues, please contact:
-• Darren Kraker, Sr Solutions Architect - dkraker@amazon.com
-• Noor Dhaliwal, Software Developer Intern - rdhali07@calpoly.edu
+- Darren Kraker, Sr Solutions Architect - dkraker@amazon.com
+- Noor Dhaliwal, Software Developer Intern - rdhali07@calpoly.edu
 
 
 ### Query Parameters:
