@@ -4,9 +4,10 @@ import "./App.css";
 import Typewriter from "./Typewriter";
 import logo from "./assets/logo.png";
 
-const BASE_URL = "https://o3w6gid9yi.execute-api.us-west-2.amazonaws.com";
+const BASE_URL = "https://genomics-api-dev.calpoly.io/";
 
 const App: React.FC = () => {
+  const [authToken, setAuthToken] = useState<string>("");
   const [uploadGood, setUploadGood] = useState<boolean>(false);
   const [sraDownloadUrl, setSraDownloadUrl] = useState<string | null>(null);
   const [biosampleDownloadUrl, setBiosampleDownloadUrl] = useState<string | null>(null);
@@ -104,6 +105,7 @@ const App: React.FC = () => {
     params.append("file_name", uploadedFile.name);
     params.append("upload", "True");
     params.append("json_rules", JSON.stringify(rulesDict));
+    params.append("auth", authToken);
 
     if (staticRulesDict) {
       params.append("json_static_rules", JSON.stringify(staticRulesDict));
@@ -138,6 +140,7 @@ const App: React.FC = () => {
         upload: "False",
         uuid,
         sra: "True",
+        auth: authToken,  // Add auth token to SRA download request
       });
 
       const sraResponse = await axios.get(`${BASE_URL}?${sraParams.toString()}`);
@@ -155,6 +158,7 @@ const App: React.FC = () => {
         upload: "False",
         uuid,
         sra: "False",
+        auth: authToken,  // Add auth token to Biosample download request
       });
 
       const biosampleResponse = await axios.get(`${BASE_URL}?${biosampleParams.toString()}`);
@@ -179,9 +183,19 @@ const App: React.FC = () => {
 
   const downloadFile = async (url: string, filename: string) => {
     try {
-      const response = await axios.get(url, {
+      // Check if the URL already has parameters
+      const hasParams = url.includes('?');
+      const authParam = `auth=${authToken}`;
+      
+      // Append the auth token to the URL
+      const urlWithAuth = hasParams 
+        ? `${url}&${authParam}` 
+        : `${url}?${authParam}`;
+      
+      const response = await axios.get(urlWithAuth, {
         responseType: "blob",
       });
+      
       const blob = new Blob([response.data]);
       const link = document.createElement("a");
       link.href = URL.createObjectURL(blob);
@@ -223,7 +237,19 @@ const App: React.FC = () => {
             aria-label="File Upload Input"
           />
         </section>
-
+        <section className="auth-section">
+          <label htmlFor="auth-token" className="auth-label">
+            Authentication Token:
+          </label>
+          <input
+            id="auth-token"
+            type="text"
+            value={authToken}
+            onChange={(e) => setAuthToken(e.target.value)}
+            className="auth-input"
+            aria-label="Authentication Token Input"
+          />
+        </section>
         <section className="json-section">
           <h3>JSON Rules</h3>
           <textarea
@@ -279,12 +305,13 @@ const App: React.FC = () => {
           aria-label="Upload and Process Button"
         >
           {isLoading ? "Processing..." : "Upload and Process"}
+          {isLoading && <span className="spinner"></span>}
         </button>
 
         {statusMessage && <div className="status-message">{statusMessage}</div>}
 
         {uploadGood && (
-          <>
+          <section className="download-section">
             {sraDownloadUrl && (
               <button onClick={() => downloadFile(sraDownloadUrl, `${baseName}_sra.csv`)} className="download-button">
                 Download SRA File
@@ -295,7 +322,7 @@ const App: React.FC = () => {
                 Download Biosample File
               </button>
             )}
-          </>
+          </section>
         )}
 
         {sraMappingsJson && (

@@ -186,7 +186,42 @@ body {
 .download-button {
   margin: 0.5rem 0;
 }
+.auth-section {
+  background: var(--card-background); /* Match the background of other sections */
+  padding: 1.5rem; /* Match the padding of other sections */
+  margin-bottom: 1.5rem; /* Match the margin of other sections */
+  border-radius: var(--border-radius); /* Match the border radius of other sections */
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Match the box shadow of other sections */
+  transition: transform var(--transition-speed), box-shadow var(--transition-speed); /* Match the transition of other sections */
+}
 
+.auth-section:hover {
+  transform: translateY(-5px); /* Match the hover effect of other sections */
+  box-shadow: 0 8px 12px rgba(0, 0, 0, 0.2); /* Match the hover effect of other sections */
+}
+
+.auth-label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+  color: var(--text-color); /* Match the text color of other labels */
+}
+
+.auth-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #dddddd;
+  border-radius: var(--border-radius);
+  font-size: 1rem;
+  transition: border-color var(--transition-speed);
+  background-color: transparent;
+  color: inherit;
+}
+
+.auth-input:focus {
+  border-color: var(--button-color); /* Match the focus state of other inputs */
+  outline: none;
+}
 @media (min-width: 768px) {
   .download-section {
     flex-direction: row;
